@@ -1,0 +1,18 @@
+# Environnement conda pour exécuter les notebooks (SEPAL ou poste local)
+#   conda env create -f sepal_environment.yml          (ou : mamba env create -f sepal_environment.yml)
+#   conda activate sbae2xls_civ
+#   python -m ipykernel install --user --name sbae2xls_civ --display-name "sbae2xls_civ"
+# Versions testées : python 3.12, pandas 3.0, numpy 2.5, geopandas 1.1, matplotlib 3.11, xlsxwriter 3.2
+name: sbae2xls_civ
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas>=3.0,<4
+  - numpy>=2.0,<3
+  - geopandas>=1.0,<2
+  - pyogrio
+  - shapely>=2.0
+  - matplotlib>=3.8
+  - xlsxwriter>=3.2
+  - ipykernel

@@ -1,0 +1,18 @@
+[workspace]
+channels = ["conda-forge"]
+name = "sbae2xls_civ"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.12.*"
+pandas = ">=3.0,<4"
+numpy = ">=2.0,<3"
+geopandas = ">=1.0,<2"
+pyogrio = "*"
+shapely = ">=2.0"
+matplotlib = ">=3.8"
+xlsxwriter = ">=3.2"
+ipykernel = "*"

@@ -1,0 +1,17 @@
+# Données d'entrée et résultats : non publiés
+data/*
+!data/.gitkeep
+results/*
+!results/.gitkeep
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Fichiers temporaires d'Excel
+~$*.xlsx
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+pixi.lock
