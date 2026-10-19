@@ -21,17 +21,13 @@ Les calculs sont faits au niveau national, par zone phytogéographique et pour l
 
 Les notebooks s'exécutent dans l'ordre 1, 2, 3, depuis la racine du dépôt.
 
-## Installation
+## Utilisation - Ambiance Sepal
 
-Sur SEPAL ou sur un poste avec conda (ou mamba) :
+- Faire download et déposer les fichiers ipynb et py dans un répertoire dans l~ambience de travail Sepal.
 
-```bash
-conda env create -f sepal_environment.yml
-conda activate sbae2xls_civ
-python -m ipykernel install --user --name sbae2xls_civ --display-name "sbae2xls_civ"
-```
+- Ouvrir les notebooks dans Sepal Jupyter et choisir le noyau `Sampling Based Area Estimation - Create Spreadsheets`
 
-Ouvrir ensuite les notebooks dans Jupyter et choisir le noyau `sbae2xls_civ`.
+- une fois les fichiers .xlsx ont eté crées, les fichiers peuvent être chargées et utilisée localement sur l´ordinateur de l´utilisateur
 
 ## Données d'entrée
 
@@ -87,17 +83,14 @@ Every notebook and module exists in French and in English. The English files car
 
 The notebooks are run in the order 1, 2, 3, from the root of the repository. The French and English chains are independent: each one reads and writes its own files.
 
-### Installation
+## Usage - Sepal Environment
 
-On SEPAL or on a computer with conda (or mamba):
+- Download the `.ipynb` and `.py` files and place them into a directory within your Sepal working environment.
 
-```bash
-conda env create -f sepal_environment.yml
-conda activate sbae2xls_civ
-python -m ipykernel install --user --name sbae2xls_civ --display-name "sbae2xls_civ"
-```
+- Open the notebooks in Sepal Jupyter and select the kernel: `Sampling Based Area Estimation - Create Spreadsheets`.
 
-Then open the notebooks in Jupyter and select the `sbae2xls_civ` kernel.
+- Once the `.xlsx` files have been created, they can be downloaded and used locally on the user's computer.
+
 
 ### Input data
 
