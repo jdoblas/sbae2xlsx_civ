@@ -12,9 +12,9 @@ Les calculs sont faits au niveau national, par zone phytogéographique et pour l
 
 | Fichier | Rôle |
 |:--|:--|
-| `1_CIV_activite_CEO_2021_2025.ipynb` | Lit l'export CEO, rattache chaque échantillon à sa strate et au PRE, calcule l'activité 2021-2025. Produit `results/CIV_echantillons_activite_2021_2025.csv`. |
-| `2_CIV_estimation_superficies_STR_2021_2025.ipynb` | Estimations de superficie et incertitudes (STR), national, par zone et pour le PRE. Produit les classeurs `CIV_estimations_superficie_STR_2021_2025_par_zone*.xlsx`. |
-| `3_CIV_emissions_2021_2025.ipynb` | Émissions de la déforestation (biomasse, sols minéraux, combustion CH₄ et N₂O), de la dégradation et absorptions des gains, avec propagation des incertitudes (GIEC, approche 1). Produit les classeurs `CIV_emissions_deforestation_2021_2025*.xlsx`. |
+| `1_CEO_output_formatting.ipynb` | Lit l'export CEO, rattache chaque échantillon à sa strate et au PRE, calcule l'activité 2021-2025. Produit `results/CIV_echantillons_activite_2021_2025.csv`. |
+| `2_area_estimation.ipynb` | Estimations de superficie et incertitudes (STR), national, par zone et pour le PRE. Produit les classeurs `2_area_estimation*.xlsx`. |
+| `3_emissions_and_removals.ipynb` | Émissions de la déforestation (biomasse, sols minéraux, combustion CH₄ et N₂O), de la dégradation et absorptions des gains, avec propagation des incertitudes (GIEC, approche 1). Produit les classeurs `3_emissions_and_removals*.xlsx`. |
 | `sbae_excel.py` | Module : classeur Excel des estimations de superficie (utilisé par le notebook 2). |
 | `sbae_emissions_excel.py` | Module : classeur Excel des émissions et absorptions (utilisé par le notebook 3). |
 | `sepal_environment.yml` | Environnement conda. |
@@ -56,8 +56,8 @@ Les superficies cartographiées des strates (nationales, par zone, et par zone d
 Les fichiers sont écrits dans le dossier `results/` :
 
 - `CIV_echantillons_activite_2021_2025.csv` : une ligne par échantillon (strate, appartenance au PRE, activité, classes de chaque année) ;
-- `CIV_estimations_superficie_STR_2021_2025_par_zone.xlsx` et `..._PRE.xlsx` : superficies par classe d'activité, erreurs standard, incertitudes et intervalles de confiance à 90 % ;
-- `CIV_emissions_deforestation_2021_2025.xlsx` et `..._PRE.xlsx` : données d'activité par transition, facteurs, émissions et absorptions annuelles, bilan et incertitudes.
+- `2_area_estimation.xlsx` et `..._PRE.xlsx` : superficies par classe d'activité, erreurs standard, incertitudes et intervalles de confiance à 90 % ;
+- `3_emissions_and_removals.xlsx` et `..._PRE.xlsx` : données d'activité par transition, facteurs, émissions et absorptions annuelles, bilan et incertitudes.
 
 ## Méthodes et références
 
@@ -81,9 +81,9 @@ Every notebook and module exists in French and in English. The English files car
 
 | French | English | Role |
 |:--|:--|:--|
-| `1_CIV_activite_CEO_2021_2025.ipynb` | `1_CIV_activity_CEO_2021_2025_en.ipynb` | Reads the CEO export, links each sample to its stratum and to the ERP, computes the 2021-2025 activity. Produces the samples CSV. |
-| `2_CIV_estimation_superficies_STR_2021_2025.ipynb` | `2_CIV_area_estimation_STR_2021_2025_en.ipynb` | Area estimates and uncertainties (STR), national, by zone and for the ERP. Produces the area workbooks. |
-| `3_CIV_emissions_2021_2025.ipynb` | `3_CIV_emissions_2021_2025_en.ipynb` | Emissions from deforestation (biomass, mineral soils, CH₄ and N₂O from biomass burning) and degradation, and removals from gains, with uncertainty propagation (IPCC approach 1). Produces the emissions workbooks. |
+| `1_CEO_output_formatting.ipynb` | `1_CEO_output_formatting_en.ipynb` | Reads the CEO export, links each sample to its stratum and to the ERP, computes the 2021-2025 activity. Produces the samples CSV. |
+| `2_area_estimation.ipynb` | `2_area_estimation_en.ipynb` | Area estimates and uncertainties (STR), national, by zone and for the ERP. Produces the area workbooks. |
+| `3_emissions_and_removals.ipynb` | `3_emissions_and_removals_en.ipynb` | Emissions from deforestation (biomass, mineral soils, CH₄ and N₂O from biomass burning) and degradation, and removals from gains, with uncertainty propagation (IPCC approach 1). Produces the emissions workbooks. |
 | `sbae_excel.py` | `sbae_excel_en.py` | Module: Excel workbook of the area estimates (used by notebook 2). |
 | `sbae_emissions_excel.py` | `sbae_emissions_excel_en.py` | Module: Excel workbook of the emissions and removals (used by notebook 3). |
 | `sepal_environment.yml` | | Conda environment (shared). |
@@ -128,8 +128,8 @@ The files are written to the `results/` folder:
 | French chain | English chain | Content |
 |:--|:--|:--|
 | `CIV_echantillons_activite_2021_2025.csv` | `CIV_activity_samples_2021_2025_en.csv` | One row per sample (stratum, ERP membership, activity, classes of each year); the two files are identical. |
-| `CIV_estimations_superficie_STR_2021_2025_par_zone.xlsx` and `..._PRE.xlsx` | `CIV_area_estimates_STR_2021_2025_by_zone_en.xlsx` and `..._ERP_en.xlsx` | Areas by activity class, standard errors, uncertainties and 90% confidence intervals. |
-| `CIV_emissions_deforestation_2021_2025.xlsx` and `..._PRE.xlsx` | `CIV_emissions_deforestation_2021_2025_en.xlsx` and `..._ERP_en.xlsx` | Activity data by transition, factors, annual emissions and removals, balance and uncertainties. |
+| `2_area_estimation.xlsx` and `..._PRE.xlsx` | `2_area_estimation_en.xlsx` and `..._ERP_en.xlsx` | Areas by activity class, standard errors, uncertainties and 90% confidence intervals. |
+| `3_emissions_and_removals.xlsx` and `..._PRE.xlsx` | `3_emissions_and_removals_en.xlsx` and `..._ERP_en.xlsx` | Activity data by transition, factors, annual emissions and removals, balance and uncertainties. |
 
 ### Methods and references
 
