@@ -21,13 +21,20 @@ Les calculs sont faits au niveau national, par zone phytogéographique et pour l
 
 Les notebooks s'exécutent dans l'ordre 1, 2, 3, depuis la racine du dépôt.
 
-## Utilisation - Ambiance Sepal
+## Utilisation dans Sepal
 
-- Faire download et déposer les fichiers ipynb et py dans un répertoire dans l~ambience de travail Sepal.
+1. Cloner le dépôt dans votre compte utilisateur Sepal (par exemple depuis un terminal Sepal) :
 
-- Ouvrir les notebooks dans Sepal Jupyter et choisir le noyau `Sampling Based Area Estimation - Create Spreadsheets`
+   ```bash
+   git clone https://github.com/jdoblas/sbae2xlsx_civ.git
+   cd sbae2xlsx_civ
+   ```
 
-- une fois les fichiers .xlsx ont eté crées, les fichiers peuvent être chargées et utilisée localement sur l´ordinateur de l´utilisateur
+2. Déposer les fichiers de données d'entrée dans le dossier `data/` du dépôt cloné (voir [Données d'entrée](#données-dentrée)).
+
+3. Ouvrir les notebooks dans Sepal Jupyter et choisir l'un des noyaux **Sampling Based Area Estimation** (n'importe lequel convient). Exécuter les notebooks dans l'ordre 1, 2, 3.
+
+4. Les résultats sont écrits dans le dossier `results/`. Les classeurs `.xlsx` peuvent ensuite être téléchargés et utilisés localement sur l'ordinateur de l'utilisateur.
 
 ## Données d'entrée
 
@@ -83,13 +90,20 @@ Every notebook and module exists in French and in English. The English files car
 
 The notebooks are run in the order 1, 2, 3, from the root of the repository. The French and English chains are independent: each one reads and writes its own files.
 
-## Usage - Sepal Environment
+### Usage in Sepal
 
-- Download the `.ipynb` and `.py` files and place them into a directory within your Sepal working environment.
+1. Clone the repository into your Sepal user account (for example from a Sepal terminal):
 
-- Open the notebooks in Sepal Jupyter and select the kernel: `Sampling Based Area Estimation - Create Spreadsheets`.
+   ```bash
+   git clone https://github.com/jdoblas/sbae2xlsx_civ.git
+   cd sbae2xlsx_civ
+   ```
 
-- Once the `.xlsx` files have been created, they can be downloaded and used locally on the user's computer.
+2. Put the input data files into the `data/` folder of the cloned repository (see [Input data](#input-data)).
+
+3. Open the notebooks in Sepal Jupyter and select any of the **Sampling Based Area Estimation** kernels. Run the notebooks in the order 1, 2, 3.
+
+4. The results are written to the `results/` folder. The `.xlsx` workbooks can then be downloaded and used locally on the user's computer.
 
 
 ### Input data
