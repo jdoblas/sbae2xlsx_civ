@@ -59,7 +59,7 @@ SHEETS = [
     (S_STK, 'Stocks de carbone, facteurs d\'émission, facteurs SOC et taux de croissance'),
     (S_ADEF, 'Superficie déforestée par zone et par transition (estimateur stratifié)'),
     (S_ADEG, 'Superficie dégradée par zone et par transition'),
-    (S_AGAIN, 'Superficie de gain (non-forêt → forêt) par zone et par catégorie'),
+    (S_AGAIN, 'Superficie de gain par zone et par transition (catégorie 2021 → catégorie de gain 2025)'),
     (S_EM, 'Déforestation : émissions de la biomasse et de la MOM (FE brut et net)'),
     (S_SOC, 'Déforestation : émissions du carbone organique des sols minéraux'),
     (S_FIRE, 'Déforestation : émissions de CH₄ et de N₂O de la combustion de la biomasse'),
@@ -120,6 +120,9 @@ class EmissionModel:
         self.W_zh = self.A_zh / self.A_z[:, None]
         self.forest_cats, self.post_cats, self.gain_cats = list(cats['forest']), list(cats['post']), list(cats['gain'])
         self.forest_map, self.post_map, self.gain_map = dict(maps['forest']), dict(maps['post']), dict(maps['gain'])
+        # catégorie 2021 des gains : utilisation non forestière, ou catégorie forestière (gain vers une forêt de rang supérieur)
+        self.gain_init_cats = self.post_cats + self.forest_cats
+        self.gain_init_map = {**self.forest_map, **self.post_map}
         self.z, self.z_fe = z_of(p['confidence']), z_of(p['ef_confidence'])
         self.k_fe = self.z / self.z_fe
         self.T = p['final_year'] - p['initial_year']
@@ -136,10 +139,11 @@ class EmissionModel:
         s['fcat_i'] = mapped(act.isin(['Def', 'Deg']), s['class_initial'], self.forest_map)
         s['pcat'] = mapped(act == 'Def', s['class_final'], self.post_map)
         s['fcat_f'] = mapped(act == 'Deg', s['class_final'], self.forest_map)
+        s['gcat_i'] = mapped(act == 'Gain', s['class_initial'], self.gain_init_map)
         s['gcat'] = mapped(act == 'Gain', s['class_final'], self.gain_map)
         s['key_def'] = np.where(act == 'Def', s['zone'] + '|' + s['fcat_i'] + '|' + s['pcat'], '')
         s['key_deg'] = np.where(act == 'Deg', s['zone'] + '|' + s['fcat_i'] + '|' + s['fcat_f'], '')
-        s['key_gain'] = np.where(act == 'Gain', s['zone'] + '|' + s['gcat'], '')
+        s['key_gain'] = np.where(act == 'Gain', s['zone'] + '|' + s['gcat_i'] + '|' + s['gcat'], '')
         self.samples = s
         self.n_zh = (s.groupby(['zone', 'strata']).size().unstack(fill_value=0)
                      .reindex(index=self.zones, columns=self.strata, fill_value=0).to_numpy(float))
@@ -352,7 +356,8 @@ class EmissionModel:
         return pd.concat([rows, pd.DataFrame(rec)], axis=1)
 
     def _gain_rows(self):
-        items = [dict(zone=zn, zi=zi, gain=g, key=f'{zn}|{g}') for zi, zn in enumerate(self.zones) for g in self.gain_cats]
+        items = [dict(zone=zn, zi=zi, g_i=gi, gain=g, key=f'{zn}|{gi}|{g}')
+                 for zi, zn in enumerate(self.zones) for gi in self.gain_init_cats for g in self.gain_cats]
         rows = self._estimate('key_gain', items)
         k, T = self.k_fe, self.T
         rec = []
@@ -460,7 +465,7 @@ class _EmissionBuilder(WorkbookBase):
         for name, rows, labels, keycol, code in [
                 (S_ADEF, m.def_rows, ['forest', 'post'], 'I', 'Def'),
                 (S_ADEG, m.deg_rows, ['f_i', 'f_f'], 'M', 'Deg'),
-                (S_AGAIN, m.gain_rows, ['gain'], 'O', 'Gain')]:
+                (S_AGAIN, m.gain_rows, ['g_i', 'gain'], 'P', 'Gain')]:
             k = len(labels)
             c = dict(zone=1, key=2 + k, s0=3 + k)
             c.update(n=3 + k + self.H, p=4 + k + self.H, area=5 + k + self.H, se=6 + k + self.H, u=7 + k + self.H,
@@ -533,7 +538,7 @@ class _EmissionBuilder(WorkbookBase):
         self.sheet_stocks()
         for name, title in [(S_ADEF, 'Superficie déforestée par transition'),
                             (S_ADEG, 'Superficie dégradée par transition'),
-                            (S_AGAIN, 'Superficie de gain par catégorie')]:
+                            (S_AGAIN, 'Superficie de gain par transition')]:
             self.sheet_activity(name, title)
         self.sheet_emissions_def()
         self.sheet_soc()
@@ -982,7 +987,7 @@ class _EmissionBuilder(WorkbookBase):
         A = self.act[name]
         rows, labels, c = A['rows'], A['labels'], A['cols']
         lab_hdr = {'forest': 'Forêt 2021', 'post': 'Utilisation post-déforestation', 'f_i': 'Forêt 2021',
-                   'f_f': 'Forêt 2025', 'gain': 'Catégorie de gain'}
+                   'f_f': 'Forêt 2025', 'g_i': 'Catégorie 2021', 'gain': 'Catégorie de gain 2025'}
         widths = [24] + [26] * len(labels) + [8] + [8] * H + [8, 11, 14, 13, 11, 13, 14]
         ws = self.sheet(name, title + ' (estimateur stratifié par zone)', widths)
         r0 = A['first'] - 1
@@ -1361,12 +1366,12 @@ class _EmissionBuilder(WorkbookBase):
     def sheet_rscf(self):
         st, m = self.st, self.m
         rows = m.gain_rows
-        groups = [(1, 2, 'Gain'), (3, 4, 'Données d\'activité'), (5, 9, 'Facteur d\'absorption'),
-                  (10, 13, 'Absorptions (période)'), (14, 14, 'Annuel')]
-        headers = ['Zone', 'Catégorie de gain', 'Superficie (ha)', 'U (%)', 'Croissance AGB (tC/ha/an)', 'U (%)', 'R',
+        groups = [(1, 3, 'Gain'), (4, 5, 'Données d\'activité'), (6, 10, 'Facteur d\'absorption'),
+                  (11, 14, 'Absorptions (période)'), (15, 15, 'Annuel')]
+        headers = ['Zone', 'Catégorie 2021', 'Catégorie de gain 2025', 'Superficie (ha)', 'U (%)', 'Croissance AGB (tC/ha/an)', 'U (%)', 'R',
                    'G (tCO₂/ha/an)', 'U (%)', 'tCO₂', 'U (%)', '± (tCO₂)', '(U·x)²', 'tCO₂/an']
         ws = self.emission_sheet(S_RSCF, 'Renforcement des stocks de carbone forestier — absorptions',
-                                 [22, 26, 13, 9, 13, 9, 8, 12, 9, 14, 9, 13, 10, 14], groups, headers)
+                                 [22, 26, 26, 13, 9, 13, 9, 8, 12, 9, 14, 9, 13, 10, 14], groups, headers)
         first = 6
         per_zone = len(rows) // self.Z
         for i, row in rows.iterrows():
@@ -1375,32 +1380,36 @@ class _EmissionBuilder(WorkbookBase):
             cf = lambda nf, **k: st.cell(nf, band=band, top=top, **k)
             R = lambda c: a1(r, c)
             self.formula(ws, r, 1, '=' + self.act_cell(S_AGAIN, i, 'zone'), cf(None, bold=top), row.zone)
-            self.formula(ws, r, 2, '=' + ref(S_AGAIN, self.act[S_AGAIN]['first'] + i, 2), cf(None), row.gain)
-            self.formula(ws, r, 3, '=' + self.act_cell(S_AGAIN, i, 'area'), cf(HA0), row.area)
-            self.formula(ws, r, 4, '=' + self.act_cell(S_AGAIN, i, 'u'), cf(PCT1), row.u_area)
-            k = f'{R(2)}&"|"&{R(1)}'
-            self.formula(ws, r, 5, f'=INDEX({self.stk["g_rate"]},MATCH({k},{self.stk["g_key"]},0))', cf('0.000'), row.rate)
-            self.formula(ws, r, 6, f'=INDEX({self.stk["g_u"]},MATCH({k},{self.stk["g_key"]},0))*Facteur_U_FE', cf(PCT1),
+            self.formula(ws, r, 2, '=' + ref(S_AGAIN, self.act[S_AGAIN]['first'] + i, 2), cf(None), row.g_i)
+            self.formula(ws, r, 3, '=' + ref(S_AGAIN, self.act[S_AGAIN]['first'] + i, 3), cf(None), row.gain)
+            self.formula(ws, r, 4, '=' + self.act_cell(S_AGAIN, i, 'area'), cf(HA0), row.area)
+            self.formula(ws, r, 5, '=' + self.act_cell(S_AGAIN, i, 'u'), cf(PCT1), row.u_area)
+            k = f'{R(3)}&"|"&{R(1)}'
+            self.formula(ws, r, 6, f'=INDEX({self.stk["g_rate"]},MATCH({k},{self.stk["g_key"]},0))', cf('0.000'), row.rate)
+            self.formula(ws, r, 7, f'=INDEX({self.stk["g_u"]},MATCH({k},{self.stk["g_key"]},0))*Facteur_U_FE', cf(PCT1),
                          row.u_rate)
-            self.formula(ws, r, 7, f'=INDEX({self.stk["g_r"]},MATCH({k},{self.stk["g_key"]},0))', cf('0.000'), row.r)
-            self.formula(ws, r, 8, f'=-{R(5)}*(1+{R(7)})*CO2_C', cf(EF2, bold=True), row.g)
-            self.formula(ws, r, 9, f'={R(6)}', cf(PCT1), row.u_rate)
-            self.formula(ws, r, 10, f'={R(3)}*{R(8)}*Facteur_cohortes', cf(T0, bold=True), row.em)
-            self.formula(ws, r, 11, f'=IF({R(3)}>0,SQRT({R(4)}^2+{R(9)}^2),0)', cf(PCT1), row.u_em)
-            self.formula(ws, r, 12, f'=ABS({R(10)})*{R(11)}', cf(T0), row.pm)
-            self.formula(ws, r, 13, f'=({R(11)}*{R(10)})^2', cf(SCI), row.ux2)
-            self.formula(ws, r, 14, f'={R(10)}/Duree_periode', cf(T0, bold=True), row.em_year)
+            self.formula(ws, r, 8, f'=INDEX({self.stk["g_r"]},MATCH({k},{self.stk["g_key"]},0))', cf('0.000'), row.r)
+            self.formula(ws, r, 9, f'=-{R(6)}*(1+{R(8)})*CO2_C', cf(EF2, bold=True), row.g)
+            self.formula(ws, r, 10, f'={R(7)}', cf(PCT1), row.u_rate)
+            self.formula(ws, r, 11, f'={R(4)}*{R(9)}*Facteur_cohortes', cf(T0, bold=True), row.em)
+            self.formula(ws, r, 12, f'=IF({R(4)}>0,SQRT({R(5)}^2+{R(10)}^2),0)', cf(PCT1), row.u_em)
+            self.formula(ws, r, 13, f'=ABS({R(11)})*{R(12)}', cf(T0), row.pm)
+            self.formula(ws, r, 14, f'=({R(12)}*{R(11)})^2', cf(SCI), row.ux2)
+            self.formula(ws, r, 15, f'={R(11)}/Duree_periode', cf(T0, bold=True), row.em_year)
         last = first + len(rows) - 1
         t, u = rows.em.sum(), u_ratio(rows.ux2.sum(), rows.em.sum())
-        rt = self.emission_total(ws, first, last, 14, [
-            (3, 'sum', HA0, rows.area.sum()), (10, 'sum', T0, t), (13, 'sum', SCI, rows.ux2.sum()),
-            (11, ('u', 10, 13), PCT1, u), (12, ('pm', 10, 11), T0, abs(t) * u), (14, 'sum', T0, rows.em_year.sum())])
-        self.em[S_RSCF] = dict(first=first, last=last, total=rt, val=10, ux2=13, year=14)
-        ws.conditional_format(first, 1, last, 14, {'type': 'formula', 'criteria': f'=$C{first + 1}=0',
+        rt = self.emission_total(ws, first, last, 15, [
+            (4, 'sum', HA0, rows.area.sum()), (11, 'sum', T0, t), (14, 'sum', SCI, rows.ux2.sum()),
+            (12, ('u', 11, 14), PCT1, u), (13, ('pm', 11, 12), T0, abs(t) * u), (15, 'sum', T0, rows.em_year.sum())])
+        self.em[S_RSCF] = dict(first=first, last=last, total=rt, val=11, ux2=14, year=15)
+        ws.conditional_format(first, 1, last, 15, {'type': 'formula', 'criteria': f'=$D{first + 1}=0',
                                                    'format': self.wb.add_format({'font_color': '#B0B7B3'})})
-        ws.autofilter(5, 1, last, 14)
-        ws.freeze_panes(first, 3)
-        self.note(ws, rt + 2, 1, 14,
+        ws.autofilter(5, 1, last, 15)
+        ws.freeze_panes(first, 4)
+        self.note(ws, rt + 2, 1, 15,
+                  'Gains ventilés par zone, catégorie 2021 (utilisation non forestière, ou catégorie forestière pour un gain '
+                  'vers une forêt de rang supérieur) et catégorie de gain 2025 ; le taux de croissance est celui de la '
+                  'catégorie de gain 2025 dans la zone. '
                   'G = − croissance AGB · (1 + R) · 44/12 (valeur négative = absorption). Avec une superficie annuelle de gain '
                   'constante (A/T), les cohortes s\'accumulent : l\'année t absorbe (A/T)·t·G, soit A · G · (T+1)/2 sur la '
                   'période. U = √(U_AD² + U_G²).', 2)
@@ -1924,8 +1933,8 @@ class _EmissionBuilder(WorkbookBase):
         s = m.samples.reset_index(drop=True)
         headers = ['Échantillon', 'Strate', 'Zone', 'Activité', 'Classe CEO 2021', 'Classe CEO 2025',
                    'Catégorie forestière 2021', 'Utilisation post-déforestation', 'Clé DEF', 'y = FE net DEF (tCO₂/ha)', 'y²',
-                   'Catégorie forestière 2025', 'Clé DEG', 'Catégorie de gain', 'Clé RSCF'] + [h for h, _ in self.extra_cols]
-        widths = [12, 8, 22, 9, 26, 26, 26, 26, 46, 14, 12, 26, 46, 22, 34] + [12] * len(self.extra_cols)
+                   'Catégorie forestière 2025', 'Clé DEG', 'Catégorie 2021 du gain', 'Catégorie de gain 2025', 'Clé RSCF'] + [h for h, _ in self.extra_cols]
+        widths = [12, 8, 22, 9, 26, 26, 26, 26, 46, 14, 12, 26, 46, 26, 22, 46] + [12] * len(self.extra_cols)
         for j, (h, w) in enumerate(zip(headers, widths)):
             ws.write(0, j, h, st.hdr if j else st.hdr_l)
             ws.set_column(j, j, w)
@@ -1953,9 +1962,11 @@ class _EmissionBuilder(WorkbookBase):
             ws.write_formula(r, 10, f'=J{R}^2', f_calc, row.y2)
             ws.write_formula(r, 11, f'=IF($D{R}="Deg",IFERROR(VLOOKUP($F{R},Corr_foret,2,FALSE),"{U}"),"")', f_calc, row.fcat_f)
             ws.write_formula(r, 12, f'=IF($D{R}="Deg",$C{R}&"|"&G{R}&"|"&L{R},"")', f_key, row.key_deg)
-            ws.write_formula(r, 13, f'=IF($D{R}="Gain",IFERROR(VLOOKUP($F{R},Corr_gain,2,FALSE),"{U}"),"")', f_calc, row.gcat)
-            ws.write_formula(r, 14, f'=IF($D{R}="Gain",$C{R}&"|"&N{R},"")', f_key, row.key_gain)
-        for j, (_, colname) in enumerate(self.extra_cols, start=15):
+            ws.write_formula(r, 13, f'=IF($D{R}="Gain",IFERROR(VLOOKUP($E{R},Corr_post,2,FALSE),'
+                                    f'IFERROR(VLOOKUP($E{R},Corr_foret,2,FALSE),"{U}")),"")', f_calc, row.gcat_i)
+            ws.write_formula(r, 14, f'=IF($D{R}="Gain",IFERROR(VLOOKUP($F{R},Corr_gain,2,FALSE),"{U}"),"")', f_calc, row.gcat)
+            ws.write_formula(r, 15, f'=IF($D{R}="Gain",$C{R}&"|"&N{R}&"|"&O{R},"")', f_key, row.key_gain)
+        for j, (_, colname) in enumerate(self.extra_cols, start=16):
             ws.write_column(1, j, [_clean(v) for v in s[colname]], f_id)
         ws.freeze_panes(1, 1)
         ws.autofilter(0, 0, len(s), len(headers) - 1)
